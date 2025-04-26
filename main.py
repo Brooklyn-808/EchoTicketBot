@@ -18,10 +18,10 @@ def get_config(server_id):
     server_configs = load_server_configs()
     return server_configs.get(str(server_id), {})
 
-
+"""
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
-
+"""
 
 intents = disnake.Intents.all()
 intents.messages = True
@@ -30,7 +30,7 @@ bot = commands.InteractionBot(intents=intents)
 @bot.event
 async def on_ready():
     print(f"Bot is ready! Logged in as {bot.user}")
-    genai.configure(api_key="GEMINI AI KEY")
+    genai.configure(api_key="API KEY")
     bot.model = genai.GenerativeModel("gemini-2.0-flash")
 
 @bot.slash_command(guild_ids=[i.id for i in bot.guilds])
@@ -163,8 +163,10 @@ class TicketButton(disnake.ui.View):
             category = await guild.create_category(category_name)
 
         ticket_channel = await guild.create_text_channel(f"{ticket_channel_prefix}{interaction.user.name}", category=category)
-        await ticket_channel.set_permissions(guild.default_role, overwrite=None)
-        await ticket_channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
+        await ticket_channel.set_permissions(guild.default_role, view_channel=False)
+        staff_role = guild.get_role(config.get("staff-id"))
+        await ticket_channel.set_permissions(staff_role, view_channel=True)
+        await ticket_channel.set_permissions(interaction.user, read_messages=True, send_messages=True, view_channel=True)
         await ticket_channel.send(ticket_message.replace("{{user}}", interaction.user.mention), view=CloseTicketButton(self.server_id, ticket_channel))
 
         await interaction.response.send_message(f"Ticket created: {ticket_channel.mention}", ephemeral=True)
@@ -270,4 +272,4 @@ async def ticketsummary(interaction: ApplicationCommandInteraction, channel: dis
 
 
 if __name__ == "__main__":
-    bot.run(os.environ["TOKEN"])
+    bot.run("TOKEN")
