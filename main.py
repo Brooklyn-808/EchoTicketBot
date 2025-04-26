@@ -126,7 +126,7 @@ class CloseTicketButton(disnake.ui.View):
             await interaction.response.send_message("Ticket closed by a user/staff")
         for user in self.ticket_channel.members:
             if staff_role not in user.roles and not user.bot:
-                interaction.channel.set_permissions(user, overwrite=None)
+                await self.ticket_channel.set_permissions(user, read_messages=False, send_messages=False, view_channel=False)
         embed = disnake.Embed(title="Ticket Closed", description="This ticket has been closed.", color=disnake.Color.red())
         await self.ticket_channel.send(embed=embed, view=TicketClosedButtons(self.server_id, self.ticket_channel))
 
@@ -162,8 +162,7 @@ class TicketButton(disnake.ui.View):
         if category is None:
             category = await guild.create_category(category_name)
 
-        ticket_channel = await guild.create_text_channel(f"{ticket_channel_prefix}{interaction.user.name}", category=category)
-        await ticket_channel.set_permissions(guild.default_role, view_channel=False)
+        ticket_channel = await guild.create_text_channel(f"{ticket_channel_prefix}{interaction.user.name}", category=category, overwrites={guild.default_role: disnake.PermissionOverwrite(read_messages=False, send_messages=False, view_channel=False)})
         staff_role = guild.get_role(config.get("staff-id"))
         await ticket_channel.set_permissions(staff_role, view_channel=True)
         await ticket_channel.set_permissions(interaction.user, read_messages=True, send_messages=True, view_channel=True)
