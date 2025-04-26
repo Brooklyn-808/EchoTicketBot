@@ -267,6 +267,51 @@ async def ticketsummary(interaction: ApplicationCommandInteraction, channel: dis
         print(f"[AI Summary Error] {e}")
 
 
+@bot.slash_command(guild_ids=[i.id for i in bot.guilds])
+async def ticketsoverview(interaction: ApplicationCommandInteraction):
+    server_id = str(interaction.guild.id)
+    config = get_config(server_id)
+    ticket_category_name = config.get("ticket-category", "Tickets")
+    category = disnake.utils.get(interaction.guild.categories, name=ticket_category_name)
+
+    if not category:
+        await interaction.response.send_message("No ticket category found.", ephemeral=True)
+        return
+
+    ticket_channels = [channel for channel in category.text_channels]
+
+    if not ticket_channels:
+        await interaction.response.send_message("No tickets found.", ephemeral=True)
+        return
+
+    embed = disnake.Embed(title="Ticket Overview", color=disnake.Color.blue())
+    info = ""
+    for channel in ticket_channels:
+        info += f"Ticket Transcript: {channel.mention}\n"
+        info += f"Ticket Name: {channel.name}\n"
+        info += f"{'\n'.join([f"{message.author}: {message.content}" async for message in channel.history(limit=100)])}\n\n"
+    prompt = (
+        "You are an API for a Discord bot that gives an oveerview and sugegstions based on ticket transcripts of open tickets"
+        "\nHere are the messages in the Discord support tickets:\n"
+        f"{info}"
+        "\n\n"
+        "Please give feedback and overview as text that is easily readable at a glance, including the issue and any relevant details. Return only the overview and feedback, nothing else."
+    )
+    try:
+        response = await asyncio.to_thread(bot.model.generate_content, prompt)
+        overview = response.text.strip()
+
+        embed.description = overview
+    except Exception as e:
+        print(f"[AI Overview Error] {e}")
+        embed.description = "Error generating overview."
+    embed.set_footer(text="Ticket Overview")
+    embed.timestamp = disnake.utils.utcnow()
+        
+
+    await interaction.response.send_message(embed=embed)
+
+
 
 
 
